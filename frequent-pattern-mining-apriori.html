@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="HandheldFriendly" content="True" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="" />
+
+  <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro|Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="./theme/stylesheet/style.min.css">
+
+  <link rel="stylesheet" type="text/css" href="./theme/pygments/github.min.css">
+  <link rel="stylesheet" type="text/css" href="./theme/font-awesome/css/fontawesome.css">
+  <link rel="stylesheet" type="text/css" href="./theme/font-awesome/css/brands.css">
+  <link rel="stylesheet" type="text/css" href="./theme/font-awesome/css/solid.css">
+
+
+
+
+
+
+
+<meta name="author" content="Wang Qiang" />
+<meta name="description" content="Apriori(I don&#39;t kown how to pronounce...) is an algorithm for frequent pattern mining. Frequent pattern mining is an important problem in data mining, like cart analysis, etc. Apriori algorhtm mainly focused on mining frequent pattern in transactional database. Enough with all the chitchat, let&#39;s discuss Apriori in detail. Apriori …" />
+<meta name="keywords" content="machine learning, frequent pattern mining">
+
+<meta property="og:site_name" content="Think in Source"/>
+<meta property="og:title" content="Frequent pattern mining - Apriori"/>
+<meta property="og:description" content="Apriori(I don&#39;t kown how to pronounce...) is an algorithm for frequent pattern mining. Frequent pattern mining is an important problem in data mining, like cart analysis, etc. Apriori algorhtm mainly focused on mining frequent pattern in transactional database. Enough with all the chitchat, let&#39;s discuss Apriori in detail. Apriori …"/>
+<meta property="og:locale" content="en_US"/>
+<meta property="og:url" content="./frequent-pattern-mining-apriori.html"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2019-01-10 00:00:00+08:00"/>
+<meta property="article:modified_time" content=""/>
+<meta property="article:author" content="./author/wang-qiang.html">
+<meta property="article:section" content="Machine Learning"/>
+<meta property="article:tag" content="machine learning"/>
+<meta property="article:tag" content="frequent pattern mining"/>
+<meta property="og:image" content="">
+
+  <title>Think in Source &ndash; Frequent pattern mining - Apriori</title>
+
+</head>
+<body>
+  <aside>
+    <div>
+      <a href=".">
+        <img src="./theme/img/profile.png" alt="Think in Source" title="Think in Source">
+      </a>
+      <h1><a href=".">Think in Source</a></h1>
+
+<p>... never stop learning</p>
+
+      <ul class="social">
+          <li>
+            <a  class="sc-linkedin" href="https://www.linkedin.com/in/qiang-wang-69403758/" target="_blank">
+            <i class="fab fa-linkedin">
+            </i>
+          </a></li>
+          <li>
+            <a  class="sc-github" href="https://github.com/qwang2505" target="_blank">
+            <i class="fab fa-github">
+            </i>
+          </a></li>
+      </ul>
+    </div>
+
+
+  </aside>
+  <main>
+
+    <nav>
+      <a href=".">    Home
+</a>
+
+      <a href="/archives.html">Archives</a>
+      <a href="/categories.html">Categories</a>
+      <a href="/tags.html">Tags</a>
+
+
+    </nav>
+
+<article class="single">
+  <header>
+      
+    <h1 id="frequent-pattern-mining-apriori">Frequent pattern mining - Apriori</h1>
+    <p>
+          Posted on Jan 10, 2019 in <a href="./category/machine-learning.html">Machine Learning</a>
+
+
+    </p>
+  </header>
+
+
+  <div>
+    <p>Apriori(<em>I don't kown how to pronounce...</em>) is an algorithm for frequent pattern mining. Frequent pattern mining is an important problem in data mining, like cart analysis, etc. Apriori algorhtm mainly focused on mining frequent pattern in transactional database.</p>
+<p>Enough with all the chitchat, let's discuss Apriori in detail. Apriori is not a complicated algorithm, it's pretty straightforward and anyone with basic math knowledge can understand it well. <a href="https://en.wikipedia.org/wiki/Apriori_algorithm">Wikipedia</a> did a pretty good and detailed introduction. However in it introduced a lot of notations, for someone not that into math notations(<em>like me</em>), it's easy to forget what they stands for and shortly I won't remember all the details. That's the reason I'm writing this article, I hope I can have a deep understand about it and if someday I need to re-learn it, I can pick it up easily from here.</p>
+<h3>Problem</h3>
+<p>Quote from wikipedia:</p>
+<blockquote>
+<p>The following is a formal statement of the problem: Let <span class="math">\(\tau=\{i_{1},i_{2},...,i_{m}\}\)</span> be a set of literals, called items. Let <span class="math">\(D\)</span> be a set of transactions, where each transaction <span class="math">\(T\)</span> is a set of items such that <span class="math">\(T\subseteq\tau\)</span>. Associated with each transaction is a unique identifier, called its <span class="math">\(TID\)</span>. We say that a transaction <span class="math">\(T\)</span> contains <span class="math">\(X\)</span>, a set of some items in <span class="math">\(\tau\)</span>, if <span class="math">\(X⊆T\)</span>. An association rule is an implication of the form <span class="math">\(X⇒Y\)</span> , where <span class="math">\(X\subset\tau\)</span>, <span class="math">\(Y\subset\tau\)</span>, and <span class="math">\(X∩Y=∅\)</span>. The rule <span class="math">\(X⇒Y\)</span> holds in the transaction set <span class="math">\(D\)</span> with confidence <span class="math">\(c\)</span> if <span class="math">\(c%\)</span> of transactions in D that contain <span class="math">\(X\)</span> also contain <span class="math">\(Y\)</span> . The rule <span class="math">\(X⇒Y\)</span> has support <span class="math">\(s\)</span> in the transaction set <span class="math">\(D\)</span> if <span class="math">\(s%\)</span> of transactions in <span class="math">\(D\)</span> contain <span class="math">\(X∪Y\)</span>. Given a set of transactions <span class="math">\(D\)</span>, the problem of mining association rules is to generate all association rules that have support and confidence greater than the user-specified minimum support (called minsup) and minimum confidence (called minconf) respectively.</p>
+</blockquote>
+<p>Well... that's a lot of notations, but if you read it in detail, it's all about some basic set operations and not that hard to understand, except the part about association rules - it did make me confuse when I first read about. Here, I'm going to use an example to help understand it. Suppose now we have a list of customer orers from some shopping website stored in databse, and each order may contain one or more items which customers bought. Each order can be indetified with a unique id, and each item are identified with a number as it's unique id. Records in database is as following.</p>
+<table>
+<thead>
+<tr>
+<th>Order ID</th>
+<th align="center">Items</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1</td>
+<td align="center">1,2,3,4</td>
+</tr>
+<tr>
+<td>O2</td>
+<td align="center">1,2,4</td>
+</tr>
+<tr>
+<td>O3</td>
+<td align="center">1,2</td>
+</tr>
+<tr>
+<td>O4</td>
+<td align="center">2,3,4</td>
+</tr>
+<tr>
+<td>O5</td>
+<td align="center">2,3</td>
+</tr>
+<tr>
+<td>O6</td>
+<td align="center">3,4</td>
+</tr>
+<tr>
+<td>O7</td>
+<td align="center">2,4</td>
+</tr>
+</tbody>
+</table>
+<p>The whole database represented with above table is notated as <span class="math">\(D\)</span> in problem definition, which contains all the customer orders in our example. Each record in the database, aka each row in above table, is a transaction, notated <span class="math">\(T\)</span>, and uniquely identified with <span class="math">\(TID\)</span>, which is <span class="math">\(O1,O2,...\)</span> . The whole item set <span class="math">\(\tau\)</span> in our example is <span class="math">\(\{1,2,3,4\}\)</span>. What we need to do is to find out some subsets of <span class="math">\(\tau\)</span> so that they are frequently bought together by customers. The "frequently bought together" is defined with support value, means that how many transactions in the database contains the subset, aka how many orders contains the subitems. For example, we want to find items that are bought together 3 times or above, here the 3 is the support value.</p>
+<h3>Naive Solution</h3>
+<p>The first solution of above problem comes to my mind would be: first get all the subsets of itemset, and then filter out those which not met support value condition. For our example above, with itemset <span class="math">\(\{1,2,3,4\}\)</span>, all the subsets are: <span class="math">\(\{\{1\},\{2\},\{3\},\{4\},\{1,2\},\{1,3\},\{1,4\},\{2,3\},\{2,4\},\{3,4\},\{1,2,3\},\{1,2,4\},\{2,3,4\},\{1,2,3,4\}\}\)</span>. Then, we scan the database to see which subsets are not qualified, filter out those and we got our answer. We already introduced how to <a href="/interview-question-powerset.html">find the powerset</a> in previous post. See pesudo code for this solution as below:</p>
+<div class="highlight"><pre><span></span><span class="n">findFrequentPatterns</span><span class="p">(</span><span class="n">database</span><span class="p">,</span> <span class="n">support</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">empty</span> <span class="nb">set</span>
+    <span class="n">itemSet</span> <span class="o">=</span> <span class="n">empty</span> <span class="nb">set</span>
+    <span class="k">for</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="n">database</span><span class="p">:</span>
+        <span class="n">add</span> <span class="n">items</span> <span class="n">into</span> <span class="n">itemset</span>
+    <span class="n">powerSet</span> <span class="o">=</span> <span class="n">findPowerSet</span><span class="p">(</span><span class="n">itemSet</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">subset</span> <span class="ow">in</span> <span class="n">powerSet</span><span class="p">:</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">transaction</span> <span class="ow">in</span> <span class="n">database</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">transaction</span> <span class="n">contains</span> <span class="n">subset</span><span class="p">:</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;=</span> <span class="n">support</span><span class="p">:</span>
+            <span class="n">add</span> <span class="n">subset</span> <span class="n">into</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+
+
+<p>Now we can see that this is not a perfect solution, because we need to scan database <span class="math">\(O(2^n)\)</span> times (which is the size of powerset), with <span class="math">\(n\)</span> as the size of item set. In real scenario this is absolutely not acceptable.</p>
+<h3>Corollaries</h3>
+<p>Now let's look back at the naive solution, what makes it so bad that we can't accept? Probably the <span class="math">\(O(2^n)\)</span> times database scan. In order to find out which subsets are not qualified, we have to check each one with all the transactions. But wait, do we have to check all the subsets? How can we reduce the count of subsets we have to check?</p>
+<p>This lead to the corollaries we will introduce in this section. They are very simple, but I'm not a smart guy, so I will still explain in detail. Now, as reluctant as I am, I still need to introduce some notations to make it easier for me to explain everything:</p>
+<p>Let <span class="math">\(X\)</span>, <span class="math">\(Y\)</span> be subsets of itemset, aka <span class="math">\(X\subseteq\tau\)</span>, and <span class="math">\(Y\subseteq\tau\)</span>, where <span class="math">\(\tau\)</span> is the whole item set. <strong>Observe that if <span class="math">\(X\subseteq Y\)</span>, then <span class="math">\(sup(X) \ge sup(Y)\)</span>, where <span class="math">\(sup(X)\)</span> means the support value of set <span class="math">\(X\)</span></strong>. This is pretty obvious, as <span class="math">\(X\)</span> is subset of <span class="math">\(Y\)</span>, <span class="math">\(X\)</span> must contain the same or less items than <span class="math">\(Y\)</span>, so we can't expect more occurrence of <span class="math">\(Y\)</span> then <span class="math">\(X\)</span> in <span class="math">\(D\)</span>, which means <span class="math">\(sup(X) \ge sup(Y)\)</span>. This lead to following corollaries:</p>
+<ul>
+<li>If <span class="math">\(X\)</span> is frequent, then any subset <span class="math">\(Y \subseteq X\)</span> is also frequent.</li>
+<li>If <span class="math">\(X\)</span> is not frequent, then any superset <span class="math">\(Y \supseteq X\)</span> can not be frequent.</li>
+</ul>
+<p>This really helped us. Remember, we are suffering from two many subsets need to be checked, but with above rules, we can get the result but check less subsets, therefore, the solution now maybe eligible for real scenarios.</p>
+<h3>Two Sub-problems</h3>
+<h3>Apriori Algorithm</h3>
+<h3>References</h3>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Apriori_algorithm">Apriori algorithm on wikipedia</a></li>
+<li><a href="https://www.philippe-fournier-viger.com/spmf/index.php">SPMF: An Open-Source Data Mining Library</a></li>
+<li><a href="https://www.philippe-fournier-viger.com/spmf/apriori_longer.pdf">Fast Algorithms for Mining Association Rules</a></li>
+</ul>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/latest.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+  </div>
+  <div class="tag-cloud">
+    <p>
+      <a href="./tag/machine-learning.html">machine learning</a>
+      <a href="./tag/frequent-pattern-mining.html">frequent pattern mining</a>
+    </p>
+  </div>
+
+
+
+
+
+</article>
+
+    <footer>
+<p>
+  &copy;  2019 - This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>
+</p>
+<p>    Powered by <a href="http://getpelican.com" target="_blank">Pelican</a> - <a href="https://github.com/alexandrevicenzi/flex" target="_blank">Flex</a> theme by <a href="http://alexandrevicenzi.com" target="_blank">Alexandre Vicenzi</a>
+</p><p>
+  <a rel="license"
+     href="http://creativecommons.org/licenses/by-sa/4.0/"
+     target="_blank">
+    <img alt="Creative Commons License"
+         title="Creative Commons License"
+         style="border-width:0"
+           src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png"
+         width="80"
+         height="15"/>
+  </a>
+</p>    </footer>
+  </main>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context" : "http://schema.org",
+  "@type" : "Blog",
+  "name": " Think in Source ",
+  "url" : ".",
+  "image": "",
+  "description": ""
+}
+</script>
+
+</body>
+</html>
