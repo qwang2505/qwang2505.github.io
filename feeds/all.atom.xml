@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Think in Source</title><link href="https://qwang2505.github.io/" rel="alternate"></link><link href="https://qwang2505.github.io/feeds/all.atom.xml" rel="self"></link><id>https://qwang2505.github.io/</id><updated>2019-01-12T00:00:00+08:00</updated><subtitle>... never stop learning</subtitle><entry><title>Frequent pattern mining - FP-Growth</title><link href="https://qwang2505.github.io/frequent-pattern-mining-fp-growth.html" rel="alternate"></link><published>2019-01-12T00:00:00+08:00</published><updated>2019-01-12T00:00:00+08:00</updated><author><name>Wang Qiang</name></author><id>tag:qwang2505.github.io,2019-01-12:/frequent-pattern-mining-fp-growth.html</id><summary type="html">&lt;p&gt;FP-Growth is an algorithm for frequent pattern mining.&lt;/p&gt;</summary><content type="html">&lt;p&gt;FP-Growth is an algorithm for frequent pattern mining.&lt;/p&gt;</content><category term="machine learning"></category><category term="frequent pattern mining"></category></entry><entry><title>Frequent pattern mining - Apriori</title><link href="https://qwang2505.github.io/frequent-pattern-mining-apriori.html" rel="alternate"></link><published>2019-01-10T00:00:00+08:00</published><updated>2019-01-10T00:00:00+08:00</updated><author><name>Wang Qiang</name></author><id>tag:qwang2505.github.io,2019-01-10:/frequent-pattern-mining-apriori.html</id><summary type="html">&lt;p&gt;Apriori(&lt;em&gt;I don't kown how to pronounce...&lt;/em&gt;) is an algorithm for frequent pattern mining. Frequent pattern mining is an important problem in data mining, like cart analysis, etc. Apriori algorhtm mainly focused on mining frequent pattern in transactional database.&lt;/p&gt;
+&lt;p&gt;Enough with all the chitchat, let's discuss Apriori in detail. Apriori …&lt;/p&gt;</summary><content type="html">&lt;p&gt;Apriori(&lt;em&gt;I don't kown how to pronounce...&lt;/em&gt;) is an algorithm for frequent pattern mining. Frequent pattern mining is an important problem in data mining, like cart analysis, etc. Apriori algorhtm mainly focused on mining frequent pattern in transactional database.&lt;/p&gt;
+&lt;p&gt;Enough with all the chitchat, let's discuss Apriori in detail. Apriori is not a complicated algorithm, it's pretty straightforward and anyone with basic math knowledge can understand it well. &lt;a href="https://en.wikipedia.org/wiki/Apriori_algorithm"&gt;Wikipedia&lt;/a&gt; did a pretty good and detailed introduction. However in it introduced a lot of notations, for someone not that into math notations(&lt;em&gt;like me&lt;/em&gt;), it's easy to forget what they stands for and shortly I won't remember all the details. That's the reason I'm writing this article, I hope I can have a deep understand about it and if someday I need to re-learn it, I can pick it up easily from here.&lt;/p&gt;
+&lt;h3&gt;Problem&lt;/h3&gt;
+&lt;p&gt;Quote from wikipedia:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;The following is a formal statement of the problem: Let &lt;span class="math"&gt;\(\tau=\{i_{1},i_{2},...,i_{m}\}\)&lt;/span&gt; be a set of literals, called items. Let &lt;span class="math"&gt;\(D\)&lt;/span&gt; be a set of transactions, where each transaction &lt;span class="math"&gt;\(T\)&lt;/span&gt; is a set of items such that &lt;span class="math"&gt;\(T\subseteq\tau\)&lt;/span&gt;. Associated with each transaction is a unique identifier, called its &lt;span class="math"&gt;\(TID\)&lt;/span&gt;. We say that a transaction &lt;span class="math"&gt;\(T\)&lt;/span&gt; contains &lt;span class="math"&gt;\(X\)&lt;/span&gt;, a set of some items in &lt;span class="math"&gt;\(\tau\)&lt;/span&gt;, if &lt;span class="math"&gt;\(X⊆T\)&lt;/span&gt;. An association rule is an implication of the form &lt;span class="math"&gt;\(X⇒Y\)&lt;/span&gt; , where &lt;span class="math"&gt;\(X\subset\tau\)&lt;/span&gt;, &lt;span class="math"&gt;\(Y\subset\tau\)&lt;/span&gt;, and &lt;span class="math"&gt;\(X∩Y=∅\)&lt;/span&gt;. The rule &lt;span class="math"&gt;\(X⇒Y\)&lt;/span&gt; holds in the transaction set &lt;span class="math"&gt;\(D\)&lt;/span&gt; with confidence &lt;span class="math"&gt;\(c\)&lt;/span&gt; if &lt;span class="math"&gt;\(c%\)&lt;/span&gt; of transactions in D that contain &lt;span class="math"&gt;\(X\)&lt;/span&gt; also contain &lt;span class="math"&gt;\(Y\)&lt;/span&gt; . The rule &lt;span class="math"&gt;\(X⇒Y\)&lt;/span&gt; has support &lt;span class="math"&gt;\(s\)&lt;/span&gt; in the transaction set &lt;span class="math"&gt;\(D\)&lt;/span&gt; if &lt;span class="math"&gt;\(s%\)&lt;/span&gt; of transactions in &lt;span class="math"&gt;\(D\)&lt;/span&gt; contain &lt;span class="math"&gt;\(X∪Y\)&lt;/span&gt;. Given a set of transactions &lt;span class="math"&gt;\(D\)&lt;/span&gt;, the problem of mining association rules is to generate all association rules that have support and confidence greater than the user-specified minimum support (called minsup) and minimum confidence (called minconf) respectively.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Well... that's a lot of notations, but if you read it in detail, it's all about some basic set operations and not that hard to understand, except the part about association rules - it did make me confuse when I first read about. Here, I'm going to use an example to help understand it. Suppose now we have a list of customer orers from some shopping website stored in databse, and each order may contain one or more items which customers bought. Each order can be indetified with a unique id, and each item are identified with a number as it's unique id. Records in database is as following.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Order ID&lt;/th&gt;
+&lt;th align="center"&gt;Items&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;O1&lt;/td&gt;
+&lt;td align="center"&gt;1,2,3,4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O2&lt;/td&gt;
+&lt;td align="center"&gt;1,2,4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O3&lt;/td&gt;
+&lt;td align="center"&gt;1,2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O4&lt;/td&gt;
+&lt;td align="center"&gt;2,3,4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O5&lt;/td&gt;
+&lt;td align="center"&gt;2,3&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O6&lt;/td&gt;
+&lt;td align="center"&gt;3,4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;O7&lt;/td&gt;
+&lt;td align="center"&gt;2,4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;The whole database represented with above table is notated as &lt;span class="math"&gt;\(D\)&lt;/span&gt; in problem definition, which contains all the customer orders in our example. Each record in the database, aka each row in above table, is a transaction, notated &lt;span class="math"&gt;\(T\)&lt;/span&gt;, and uniquely identified with &lt;span class="math"&gt;\(TID\)&lt;/span&gt;, which is &lt;span class="math"&gt;\(O1,O2,...\)&lt;/span&gt; . The whole item set &lt;span class="math"&gt;\(\tau\)&lt;/span&gt; in our example is &lt;span class="math"&gt;\(\{1,2,3,4\}\)&lt;/span&gt;. What we need to do is to find out some subsets of &lt;span class="math"&gt;\(\tau\)&lt;/span&gt; so that they are frequently bought together by customers. The "frequently bought together" is defined with support value, means that how many transactions in the database contains the subset, aka how many orders contains the subitems. For example, we want to find items that are bought together 3 times or above, here the 3 is the support value.&lt;/p&gt;
+&lt;h3&gt;Naive Solution&lt;/h3&gt;
+&lt;p&gt;The first solution of above problem comes to my mind would be: first get all the subsets of itemset, and then filter out those which not met support value condition. For our example above, with itemset &lt;span class="math"&gt;\(\{1,2,3,4\}\)&lt;/span&gt;, all the subsets are: &lt;span class="math"&gt;\(\{\{1\},\{2\},\{3\},\{4\},\{1,2\},\{1,3\},\{1,4\},\{2,3\},\{2,4\},\{3,4\},\{1,2,3\},\{1,2,4\},\{2,3,4\},\{1,2,3,4\}\}\)&lt;/span&gt;. Then, we scan the database to see which subsets are not qualified, filter out those and we got our answer. We already introduced how to &lt;a href="/interview-question-powerset.html"&gt;find the powerset&lt;/a&gt; in previous post. See pesudo code for this solution as below:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;findFrequentPatterns&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;support&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+    &lt;span class="n"&gt;result&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;empty&lt;/span&gt; &lt;span class="nb"&gt;set&lt;/span&gt;
+    &lt;span class="n"&gt;itemSet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;empty&lt;/span&gt; &lt;span class="nb"&gt;set&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;transaction&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;add&lt;/span&gt; &lt;span class="n"&gt;items&lt;/span&gt; &lt;span class="n"&gt;into&lt;/span&gt; &lt;span class="n"&gt;itemset&lt;/span&gt;
+    &lt;span class="n"&gt;powerSet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;findPowerSet&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;itemSet&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;subset&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;powerSet&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;count&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;transaction&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;transaction&lt;/span&gt; &lt;span class="n"&gt;contains&lt;/span&gt; &lt;span class="n"&gt;subset&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+                &lt;span class="n"&gt;count&lt;/span&gt; &lt;span class="o"&gt;+=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;=&lt;/span&gt; &lt;span class="n"&gt;support&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+            &lt;span class="n"&gt;add&lt;/span&gt; &lt;span class="n"&gt;subset&lt;/span&gt; &lt;span class="n"&gt;into&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now we can see that this is not a perfect solution, because we need to scan database &lt;span class="math"&gt;\(O(2^n)\)&lt;/span&gt; times (which is the size of powerset), with &lt;span class="math"&gt;\(n\)&lt;/span&gt; as the size of item set. In real scenario this is absolutely not acceptable.&lt;/p&gt;
+&lt;h3&gt;Corollaries&lt;/h3&gt;
+&lt;p&gt;Now let's look back at the naive solution, what makes it so bad that we can't accept? Probably the &lt;span class="math"&gt;\(O(2^n)\)&lt;/span&gt; times database scan. In order to find out which subsets are not qualified, we have to check each one with all the transactions. But wait, do we have to check all the subsets? How can we reduce the count of subsets we have to check?&lt;/p&gt;
+&lt;p&gt;This lead to the corollaries we will introduce in this section. They are very simple, but I'm not a smart guy, so I will still explain in detail. Now, as reluctant as I am, I still need to introduce some notations to make it easier for me to explain everything:&lt;/p&gt;
+&lt;p&gt;Let &lt;span class="math"&gt;\(X\)&lt;/span&gt;, &lt;span class="math"&gt;\(Y\)&lt;/span&gt; be subsets of itemset, aka &lt;span class="math"&gt;\(X\subseteq\tau\)&lt;/span&gt;, and &lt;span class="math"&gt;\(Y\subseteq\tau\)&lt;/span&gt;, where &lt;span class="math"&gt;\(\tau\)&lt;/span&gt; is the whole item set. &lt;strong&gt;Observe that if &lt;span class="math"&gt;\(X\subseteq Y\)&lt;/span&gt;, then &lt;span class="math"&gt;\(sup(X) \ge sup(Y)\)&lt;/span&gt;, where &lt;span class="math"&gt;\(sup(X)\)&lt;/span&gt; means the support value of set &lt;span class="math"&gt;\(X\)&lt;/span&gt;&lt;/strong&gt;. This is pretty obvious, as &lt;span class="math"&gt;\(X\)&lt;/span&gt; is subset of &lt;span class="math"&gt;\(Y\)&lt;/span&gt;, &lt;span class="math"&gt;\(X\)&lt;/span&gt; must contain the same or less items than &lt;span class="math"&gt;\(Y\)&lt;/span&gt;, so we can't expect more occurrence of &lt;span class="math"&gt;\(Y\)&lt;/span&gt; then &lt;span class="math"&gt;\(X\)&lt;/span&gt; in &lt;span class="math"&gt;\(D\)&lt;/span&gt;, which means &lt;span class="math"&gt;\(sup(X) \ge sup(Y)\)&lt;/span&gt;. This lead to following corollaries:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;If &lt;span class="math"&gt;\(X\)&lt;/span&gt; is frequent, then any subset &lt;span class="math"&gt;\(Y \subseteq X\)&lt;/span&gt; is also frequent.&lt;/li&gt;
+&lt;li&gt;If &lt;span class="math"&gt;\(X\)&lt;/span&gt; is not frequent, then any superset &lt;span class="math"&gt;\(Y \supseteq X\)&lt;/span&gt; can not be frequent.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;This really helped us. Remember, we are suffering from two many subsets need to be checked, but with above rules, we can get the result but check less subsets, therefore, the solution now maybe eligible for real scenarios.&lt;/p&gt;
+&lt;h3&gt;Two Sub-problems&lt;/h3&gt;
+&lt;h3&gt;Apriori Algorithm&lt;/h3&gt;
+&lt;h3&gt;References&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://en.wikipedia.org/wiki/Apriori_algorithm"&gt;Apriori algorithm on wikipedia&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://www.philippe-fournier-viger.com/spmf/index.php"&gt;SPMF: An Open-Source Data Mining Library&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://www.philippe-fournier-viger.com/spmf/apriori_longer.pdf"&gt;Fast Algorithms for Mining Association Rules&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;script type="text/javascript"&gt;if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width &lt; 768) ? "left" : align;
+        indent = (screen.width &lt; 768) ? "0em" : indent;
+        linebreak = (screen.width &lt; 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/latest.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+&lt;/script&gt;</content><category term="machine learning"></category><category term="frequent pattern mining"></category></entry><entry><title>HashMap in JDK8</title><link href="https://qwang2505.github.io/hashmap-in-jdk8.html" rel="alternate"></link><published>2019-01-01T00:00:00+08:00</published><updated>2019-01-01T00:00:00+08:00</updated><author><name>Wang Qiang</name></author><id>tag:qwang2505.github.io,2019-01-01:/hashmap-in-jdk8.html</id><summary type="html">&lt;p&gt;HashMap is a commonly used data structure in Java development, I guess every developer would use it, well, almost every day. However we may not understand it as we should, at least I didn't put more attention on it previously. Lately I found some interview questions about HashMap which are …&lt;/p&gt;</summary><content type="html">&lt;p&gt;HashMap is a commonly used data structure in Java development, I guess every developer would use it, well, almost every day. However we may not understand it as we should, at least I didn't put more attention on it previously. Lately I found some interview questions about HashMap which are pretty interesting, and I thought it should be a good motivation to know more about HashMap, so that I won't be blocked if challenged in an interview.&lt;/p&gt;
+&lt;p&gt;First let's raise some questions about HashMap, these are asked a lot by interviewers.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;What's the initial capacity of HashMap?&lt;/li&gt;
+&lt;li&gt;What's the default load factor of HashMap?&lt;/li&gt;
+&lt;li&gt;What's the data structure internally used in HashMap?&lt;/li&gt;
+&lt;li&gt;If create HashMap with code &lt;code&gt;new HashMap&amp;lt;&amp;gt;(20)&lt;/code&gt;, what the size of bucket array should be?&lt;/li&gt;
+&lt;/ul&gt;</content><category term="java"></category><category term="hash map"></category></entry><entry><title>Interview Question - Powerset</title><link href="https://qwang2505.github.io/interview-question-powerset.html" rel="alternate"></link><published>2018-01-01T00:00:00+08:00</published><updated>2018-01-01T00:00:00+08:00</updated><author><name>Wang Qiang</name></author><id>tag:qwang2505.github.io,2018-01-01:/interview-question-powerset.html</id><summary type="html">&lt;p&gt;Powerset (sometimes written as power set) means all the subsets of a given set. Find powerset of a given set is a common interview problem.&lt;/p&gt;
+&lt;h3&gt;Problem&lt;/h3&gt;
+&lt;p&gt;Given a set of distinct numbers, &lt;span class="math"&gt;\(nums\)&lt;/span&gt;, return all possible subsets(the powerset).&lt;/p&gt;
+&lt;p&gt;For example:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;nums&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;}&lt;/span&gt;
+&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; 
+&lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;{},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;3 …&lt;/span&gt;&lt;/pre&gt;&lt;/div&gt;</summary><content type="html">&lt;p&gt;Powerset (sometimes written as power set) means all the subsets of a given set. Find powerset of a given set is a common interview problem.&lt;/p&gt;
+&lt;h3&gt;Problem&lt;/h3&gt;
+&lt;p&gt;Given a set of distinct numbers, &lt;span class="math"&gt;\(nums\)&lt;/span&gt;, return all possible subsets(the powerset).&lt;/p&gt;
+&lt;p&gt;For example:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;Input&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;nums&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;}&lt;/span&gt;
+&lt;span class="n"&gt;Output&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; 
+&lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="o"&gt;{},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+    &lt;span class="o"&gt;{&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="o"&gt;},&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3&gt;Recursion&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;public&lt;/span&gt; &lt;span class="kd"&gt;static&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="nf"&gt;powerSet&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;originalSet&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;sets&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;();&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;originalSet&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;isEmpty&lt;/span&gt;&lt;span class="o"&gt;())&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;sets&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;());&lt;/span&gt;
+        &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;sets&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+    &lt;span class="o"&gt;}&lt;/span&gt;
+    &lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;list&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;ArrayList&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;(&lt;/span&gt;&lt;span class="n"&gt;originalSet&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+    &lt;span class="n"&gt;T&lt;/span&gt; &lt;span class="n"&gt;head&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;get&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+    &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;rest&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;(&lt;/span&gt;&lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;subList&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;size&lt;/span&gt;&lt;span class="o"&gt;()));&lt;/span&gt; 
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;set&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;powerSet&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;rest&lt;/span&gt;&lt;span class="o"&gt;))&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;newSet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;();&lt;/span&gt;
+        &lt;span class="n"&gt;newSet&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;head&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;newSet&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;addAll&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;set&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;sets&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;newSet&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+        &lt;span class="n"&gt;sets&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;set&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+    &lt;span class="o"&gt;}&lt;/span&gt;       
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;sets&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;  
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h3&gt;Bmi manipulation&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="kd"&gt;public&lt;/span&gt; &lt;span class="kd"&gt;static&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="nf"&gt;powerSetBit&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;originalSet&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+    &lt;span class="n"&gt;List&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;list&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;ArrayList&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;(&lt;/span&gt;&lt;span class="n"&gt;originalSet&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+    &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;size&lt;/span&gt;&lt;span class="o"&gt;();&lt;/span&gt;
+    &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+    &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;Math&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;pow&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="o"&gt;++)&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+        &lt;span class="n"&gt;Set&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;set&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;new&lt;/span&gt; &lt;span class="n"&gt;HashSet&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&amp;gt;();&lt;/span&gt;
+        &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt;&lt;span class="o"&gt;++)&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+            &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;bit&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;count&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+            &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;bit&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="o"&gt;{&lt;/span&gt;
+                &lt;span class="n"&gt;set&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;list&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;get&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;count&lt;/span&gt;&lt;span class="o"&gt;));&lt;/span&gt;
+            &lt;span class="o"&gt;}&lt;/span&gt;
+        &lt;span class="o"&gt;}&lt;/span&gt;
+        &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;add&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="n"&gt;set&lt;/span&gt;&lt;span class="o"&gt;);&lt;/span&gt;
+    &lt;span class="o"&gt;}&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;results&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt;
+&lt;span class="o"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;script type="text/javascript"&gt;if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width &lt; 768) ? "left" : align;
+        indent = (screen.width &lt; 768) ? "0em" : indent;
+        linebreak = (screen.width &lt; 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.3/latest.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+&lt;/script&gt;</content><category term="algorithms"></category><category term="coding"></category><category term="interview"></category><category term="set"></category></entry></feed>
